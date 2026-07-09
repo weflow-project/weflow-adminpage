@@ -98,8 +98,8 @@ interface PageView {
 const FILTERS: Filter[] = ["전체", "대기", "진행중", "완료"];
 const TABS: { key: Tab; label: string }[] = [
   { key: "overview", label: "전체 현황" },
-  { key: "reservations", label: "예약 관리" },
   { key: "inquiries", label: "문의 관리" },
+  { key: "reservations", label: "예약 관리" },
   { key: "analytics", label: "통계 관리" },
   { key: "traffic", label: "유입 관리" },
 ];
@@ -1624,12 +1624,14 @@ function TrafficView({
           title="날짜별 방문자"
           desc="최근 14일 동안 하루에 몇 명이 왔는지"
         />
+        <div style={{ overflowX: "auto", overflowY: "hidden" }}>
         <div
           style={{
             display: "flex",
             alignItems: "flex-end",
-            gap: "2%",
+            gap: "0.5rem",
             height: 160,
+            minWidth: 620,
           }}
         >
           {days.map((d) => (
@@ -1671,6 +1673,7 @@ function TrafficView({
               </span>
             </div>
           ))}
+        </div>
         </div>
       </section>
 
@@ -1891,6 +1894,15 @@ export default function AdminPage() {
     )
       setAuthed(true);
   }, []);
+
+  // 새로고침해도 현재 탭 유지 — 마지막 탭을 저장하고 진입 시 복원
+  useEffect(() => {
+    const saved = localStorage.getItem("weflow_admin_tab") as Tab | null;
+    if (saved && TABS.some((t) => t.key === saved)) setTab(saved);
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("weflow_admin_tab", tab);
+  }, [tab]);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -2194,7 +2206,9 @@ export default function AdminPage() {
           >
             <button
               type="button"
-              onClick={() => {}}
+              onClick={() => {
+              window.location.href = "https://weflowlab.kr";
+            }}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -2206,7 +2220,7 @@ export default function AdminPage() {
                 padding: "0.55rem 0.25rem",
                 fontSize: "1.02rem",
                 fontFamily: "inherit",
-                cursor: "default",
+                cursor: "pointer",
                 textAlign: "left",
               }}
               className="semibold"
@@ -2440,7 +2454,9 @@ export default function AdminPage() {
         >
           <button
             type="button"
-            onClick={() => {}}
+            onClick={() => {
+              window.location.href = "https://weflowlab.kr";
+            }}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -2523,20 +2539,6 @@ export default function AdminPage() {
                 style={{ display: "grid", gap: "1rem" }}
                 className={tab === "overview" ? "stat-grid-4" : "stat-grid-2"}
               >
-                {tab !== "inquiries" && (
-                  <>
-                    <StatCard
-                      label="전체 예약"
-                      value={bookings.length}
-                      color="blue"
-                    />
-                    <StatCard
-                      label="대기중 예약"
-                      value={pendingB}
-                      color="green"
-                    />
-                  </>
-                )}
                 {tab !== "reservations" && (
                   <>
                     <StatCard
@@ -2547,6 +2549,20 @@ export default function AdminPage() {
                     <StatCard
                       label="대기중 문의"
                       value={pendingI}
+                      color="green"
+                    />
+                  </>
+                )}
+                {tab !== "inquiries" && (
+                  <>
+                    <StatCard
+                      label="전체 예약"
+                      value={bookings.length}
+                      color="blue"
+                    />
+                    <StatCard
+                      label="대기중 예약"
+                      value={pendingB}
                       color="green"
                     />
                   </>
@@ -2641,23 +2657,6 @@ export default function AdminPage() {
           )}
 
           {/* 테이블 */}
-          {tab !== "inquiries" && tab !== "analytics" && tab !== "traffic" && (
-            <RequestTable
-              title={tab === "overview" ? "예약 관리" : undefined}
-              rows={filteredB}
-              showSchedule
-              onStatusChange={(id, s) =>
-                updateStatus("/api/bookings", id, s, setBookings)
-              }
-              onDelete={(id) => remove("/api/bookings", id, setBookings)}
-              onExport={() =>
-                window.open("/api/export?type=bookings", "_blank")
-              }
-              onSeeAll={
-                tab === "overview" ? () => setTab("reservations") : undefined
-              }
-            />
-          )}
           {tab !== "reservations" &&
             tab !== "analytics" &&
             tab !== "traffic" && (
@@ -2676,6 +2675,23 @@ export default function AdminPage() {
                 }
               />
             )}
+          {tab !== "inquiries" && tab !== "analytics" && tab !== "traffic" && (
+            <RequestTable
+              title={tab === "overview" ? "예약 관리" : undefined}
+              rows={filteredB}
+              showSchedule
+              onStatusChange={(id, s) =>
+                updateStatus("/api/bookings", id, s, setBookings)
+              }
+              onDelete={(id) => remove("/api/bookings", id, setBookings)}
+              onExport={() =>
+                window.open("/api/export?type=bookings", "_blank")
+              }
+              onSeeAll={
+                tab === "overview" ? () => setTab("reservations") : undefined
+              }
+            />
+          )}
         </div>
       </main>
 
