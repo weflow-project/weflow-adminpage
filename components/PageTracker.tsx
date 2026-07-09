@@ -13,6 +13,13 @@ function getSessionId(): string {
   return id
 }
 
+// 추적 제외 여부 — 로컬 개발(localhost) + 본인 브라우저 opt-out
+function trackingDisabled(): boolean {
+  const host = window.location.hostname
+  if (host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local')) return true
+  return localStorage.getItem('weflow_notrack') === '1'
+}
+
 export default function PageTracker() {
   const pathname = usePathname()
   const current = useRef<{ id: string; entry: number; flushed: boolean } | null>(null)
@@ -47,11 +54,17 @@ export default function PageTracker() {
 
   useEffect(() => {
     if (isAdmin) return
+
+    // 개발/본인 방문 제외: URL 플래그(?notrack=1 / ?track=1)로 opt-out 토글
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('notrack') === '1') localStorage.setItem('weflow_notrack', '1')
+    if (params.get('track') === '1') localStorage.removeItem('weflow_notrack')
+    if (trackingDisabled()) return
+
     // 이전 페이지 체류시간 마감 후 새 페이지용으로 스크롤 초기화
     flush()
     maxScroll.current = 0
 
-    const params = new URLSearchParams(window.location.search)
     const body = {
       sessionId: getSessionId(),
       path: pathname,
